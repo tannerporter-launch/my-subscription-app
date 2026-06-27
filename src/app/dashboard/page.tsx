@@ -1,15 +1,39 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+type SearchParams = Promise<{ checkout?: string }>;
+
 // Private route. The proxy already redirects unauthenticated requests; we
 // re-verify here so the page never renders without a confirmed session.
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/register");
+
+  const { checkout } = await searchParams;
+  // RLS lets the user read their own subscription row.
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("status, current_period_end")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const status = sub?.status ?? "inactive";
+  const isActive = status === "active" || status === "trialing";
+  const renews = sub?.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   const joined = user.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, {
@@ -49,13 +73,51 @@ export default async function DashboardPage() {
             <Field label="Member since" value={joined} />
           </dl>
 
-          <p className="mt-8 rounded-lg bg-indigo-50/70 px-4 py-3 text-sm text-slate-600 dark:bg-slate-950 dark:text-slate-400">
-            This route is gated by server-side cookie verification in
-            <code className="mx-1 rounded bg-indigo-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
-              src/proxy.ts
-            </code>
-            and re-checked on the server before render.
-          </p>
+          {checkout === "success" ? (
+            <p className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+              Subscription confirmed — welcome to Pro! (Status updates within a
+              moment as Stripe notifies us.)
+            </p>
+          ) : null}
+
+          {/* Billing card */}
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50/60 p-5 dark:border-slate-800 dark:bg-slate-950/40">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Billing
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {isActive ? "Pro — active" : "Free plan"}
+                  <span className="ml-2 align-middle text-xs font-normal text-slate-400 dark:text-slate-500">
+                    {status}
+                  </span>
+                </p>
+                {isActive && renews ? (
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    Renews {renews}
+                  </p>
+                ) : null}
+              </div>
+              {isActive ? (
+                <form action="/api/portal" method="post">
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800"
+                  >
+                    Manage billing
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href="/pricing"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                >
+                  Upgrade to Pro
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>
