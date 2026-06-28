@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAdminUser } from "@/lib/admin";
-import { readRepoFile, commitToMain, type ProposedFile } from "@/lib/github";
+import {
+  readRepoFile,
+  commitToMain,
+  triggerDeployHook,
+  type ProposedFile,
+} from "@/lib/github";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -57,7 +62,13 @@ const tools: Anthropic.Tool[] = [
 ];
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
-type Action = { type: "commit"; commitUrl: string; commitSha: string; branch: string };
+type Action = {
+  type: "commit";
+  commitUrl: string;
+  commitSha: string;
+  branch: string;
+  deployTriggered: boolean;
+};
 
 export async function POST(req: Request) {
   // Hard gate: only the admin email passes. Return 404 (not 403) so the
@@ -139,11 +150,17 @@ export async function POST(req: Request) {
               message: input.message,
               files: input.files,
             });
-            actions.push({ type: "commit", ...commit });
+            // Fire the Vercel deploy hook (no-op until VERCEL_DEPLOY_HOOK_URL is set).
+            const deployTriggered = await triggerDeployHook();
+            actions.push({ type: "commit", ...commit, deployTriggered });
             results.push({
               type: "tool_result",
               tool_use_id: block.id,
-              content: `Committed ${commit.commitSha.slice(0, 7)} directly to '${commit.branch}': ${commit.commitUrl}. A production deploy is still required to make it live.`,
+              content: `Committed ${commit.commitSha.slice(0, 7)} directly to '${commit.branch}': ${commit.commitUrl}. ${
+                deployTriggered
+                  ? "Production deploy triggered via deploy hook."
+                  : "No deploy hook configured — a production deploy is still required to make it live."
+              }`,
             });
           } else {
             results.push({

@@ -43,6 +43,20 @@ async function gh<T = unknown>(path: string, init?: RequestInit): Promise<T> {
 
 const defaultBranch = () => process.env.GITHUB_DEFAULT_BRANCH ?? "main";
 
+// Fire the Vercel Deploy Hook to trigger a production rebuild. Dormant until
+// VERCEL_DEPLOY_HOOK_URL is set (which requires the repo to be connected to the
+// Vercel project first). Returns true if a build was successfully triggered.
+export async function triggerDeployHook(): Promise<boolean> {
+  const url = process.env.VERCEL_DEPLOY_HOOK_URL;
+  if (!url) return false;
+  try {
+    const res = await fetch(url, { method: "POST", cache: "no-store" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Read a file's current contents from the default branch.
 export async function readRepoFile(path: string): Promise<string> {
   const { owner, name } = repoParts();

@@ -2,7 +2,13 @@
 
 import { useRef, useState } from "react";
 
-type Action = { type: "commit"; commitUrl: string; commitSha: string; branch: string };
+type Action = {
+  type: "commit";
+  commitUrl: string;
+  commitSha: string;
+  branch: string;
+  deployTriggered: boolean;
+};
 type Message = { role: "user" | "assistant"; content: string; actions?: Action[] };
 
 export function AdminChat({ adminEmail }: { adminEmail: string }) {
@@ -94,7 +100,10 @@ export function AdminChat({ adminEmail }: { adminEmail: string }) {
                     rel="noreferrer"
                     className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/20"
                   >
-                    ↗ Committed {a.commitSha.slice(0, 7)} directly to {a.branch} — deploy to ship
+                    ↗ Committed {a.commitSha.slice(0, 7)} to {a.branch}
+                    {a.deployTriggered
+                      ? " — production deploy triggered"
+                      : " — deploy to ship"}
                   </a>
                 ))}
               </div>
