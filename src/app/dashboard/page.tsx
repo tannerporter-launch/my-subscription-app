@@ -59,7 +59,7 @@ export default async function DashboardPage({
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 hover:shadow-md dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800"
               >
                 Sign out
               </button>
@@ -103,7 +103,7 @@ export default async function DashboardPage({
                 <form action="/api/portal" method="post">
                   <button
                     type="submit"
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800"
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 hover:shadow-md dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800"
                   >
                     Manage billing
                   </button>
@@ -111,7 +111,7 @@ export default async function DashboardPage({
               ) : (
                 <Link
                   href="/pricing"
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/25 active:translate-y-0 active:scale-[0.98]"
                 >
                   Upgrade to Pro
                 </Link>

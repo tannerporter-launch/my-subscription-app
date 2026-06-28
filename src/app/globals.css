@@ -24,3 +24,103 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ---------------------------------------------------------------------------
+   Subtle, professional interactions
+   - Smooth transitions + pointer affordance on interactive elements
+   - Gentle hover lift and a satisfying "press" on buttons
+   Only on devices with a precise pointer, and never when the user prefers
+   reduced motion.
+--------------------------------------------------------------------------- */
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button,
+  [role="button"],
+  a {
+    transition:
+      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.18s ease,
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      opacity 0.18s ease;
+  }
+
+  button:not(:disabled):hover,
+  [role="button"]:not([aria-disabled="true"]):hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  [role="button"],
+  a {
+    transition: none !important;
+  }
+
+  button:hover,
+  [role="button"]:hover,
+  button:active,
+  [role="button"]:active {
+    transform: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Custom cursor follower (the soft ring trailing the mouse).
+   The native cursor is intentionally kept for accessibility.
+--------------------------------------------------------------------------- */
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  height: 28px;
+  width: 28px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(99, 102, 241, 0.55);
+  background: rgba(99, 102, 241, 0.06);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.25s ease;
+}
+
+.cursor-ring[data-active="true"] {
+  height: 44px;
+  width: 44px;
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.8);
+}
+
+.cursor-ring[data-down="true"] {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.9);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .cursor-ring {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-ring {
+    display: none;
+  }
+}

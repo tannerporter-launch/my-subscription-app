@@ -30,7 +30,7 @@ export default async function Home() {
         {user ? (
           <Link
             href="/dashboard"
-            className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 sm:w-auto"
+            className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/25 active:translate-y-0 active:scale-[0.98] sm:w-auto"
           >
             Go to dashboard
           </Link>
@@ -38,13 +38,13 @@ export default async function Home() {
           <>
             <Link
               href="/register"
-              className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 sm:w-auto"
+              className="w-full rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/25 active:translate-y-0 active:scale-[0.98] sm:w-auto"
             >
               Get started — it&apos;s free
             </Link>
             <Link
               href="/register"
-              className="w-full rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800 sm:w-auto"
+              className="w-full rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md active:translate-y-0 active:scale-[0.98] dark:border-slate-700 dark:bg-transparent dark:text-white dark:hover:bg-slate-800 sm:w-auto"
             >
               Sign in
             </Link>
@@ -63,7 +63,7 @@ export default async function Home() {
 
 function Feature({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/70 p-5 dark:border-slate-800 dark:bg-slate-900/50">
+    <div className="rounded-xl border border-slate-200 bg-white/70 p-5 transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/60 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-slate-700 dark:hover:shadow-black/30">
       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
       <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{body}</p>
     </div>
