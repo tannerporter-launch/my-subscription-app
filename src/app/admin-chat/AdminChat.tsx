@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-type Action = { type: "pull_request"; prUrl: string; prNumber: number; branch: string };
+type Action = { type: "commit"; commitUrl: string; commitSha: string; branch: string };
 type Message = { role: "user" | "assistant"; content: string; actions?: Action[] };
 
 export function AdminChat({ adminEmail }: { adminEmail: string }) {
@@ -88,13 +88,13 @@ export function AdminChat({ adminEmail }: { adminEmail: string }) {
                 <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                 {m.actions?.map((a) => (
                   <a
-                    key={a.prNumber}
-                    href={a.prUrl}
+                    key={a.commitSha}
+                    href={a.commitUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-500/20"
+                    className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-300 hover:bg-amber-500/20"
                   >
-                    ↗ Pull request #{a.prNumber} opened on {a.branch} — review &amp; merge to ship
+                    ↗ Committed {a.commitSha.slice(0, 7)} directly to {a.branch} — deploy to ship
                   </a>
                 ))}
               </div>

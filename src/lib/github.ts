@@ -1,8 +1,8 @@
 // Minimal GitHub REST helper for the Admin AI Control Portal.
 //
-// SAFETY: writes never touch the default branch directly. commitChangeViaPR()
-// always creates a NEW branch and opens a pull request, so a human reviews and
-// merges before anything can reach production. The token (GH_AUTOMATION_TOKEN)
+// ⚠️ commitToMain() writes DIRECTLY to the default (production) branch — there
+// is no pull-request review gate. The only access control is the admin-email
+// check on the calling route (/api/admin/chat). The token (GH_AUTOMATION_TOKEN)
 // lives only on the server.
 
 const GH_API = "https://api.github.com";
@@ -56,19 +56,21 @@ export async function readRepoFile(path: string): Promise<string> {
 
 export type ProposedFile = { path: string; content: string };
 
-// Commit the given files to a fresh branch and open a PR. Returns the PR URL.
-export async function commitChangeViaPR(opts: {
-  title: string;
-  body?: string;
+// Commit the given files DIRECTLY to the default (production) branch. No PR,
+// no review — the new commit fast-forwards `main`. Returns the commit URL.
+//
+// ⚠️ This bypasses the pull-request review gate by design. The only safeguard
+// left is the admin-email check on the calling route — keep it.
+export async function commitToMain(opts: {
+  message: string;
   files: ProposedFile[];
-  branchPrefix?: string;
-}): Promise<{ prUrl: string; prNumber: number; branch: string }> {
+}): Promise<{ commitSha: string; commitUrl: string; branch: string }> {
   if (!opts.files?.length) throw new Error("No files provided.");
   const { owner, name } = repoParts();
   const base = defaultBranch();
   const repo = `/repos/${owner}/${name}`;
 
-  // 1. Resolve the base commit + tree.
+  // 1. Resolve the current tip of main + its tree.
   const ref = await gh<{ object: { sha: string } }>(
     `${repo}/git/ref/heads/${base}`,
   );
@@ -95,39 +97,29 @@ export async function commitChangeViaPR(opts: {
     });
   }
 
-  // 3. New tree, 4. new commit (atomic across all files).
+  // 3. New tree, 4. new commit parented on the current main tip (atomic).
   const tree = await gh<{ sha: string }>(`${repo}/git/trees`, {
     method: "POST",
     body: JSON.stringify({ base_tree: baseCommit.tree.sha, tree: treeItems }),
   });
-  const commit = await gh<{ sha: string }>(`${repo}/git/commits`, {
-    method: "POST",
-    body: JSON.stringify({
-      message: opts.title,
-      tree: tree.sha,
-      parents: [baseSha],
-    }),
+  const commit = await gh<{ sha: string; html_url: string }>(
+    `${repo}/git/commits`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        message: opts.message,
+        tree: tree.sha,
+        parents: [baseSha],
+      }),
+    },
+  );
+
+  // 5. Fast-forward main directly to the new commit (force: false so a racing
+  //    push isn't clobbered — a non-fast-forward update will error instead).
+  await gh(`${repo}/git/refs/heads/${base}`, {
+    method: "PATCH",
+    body: JSON.stringify({ sha: commit.sha, force: false }),
   });
 
-  // 5. New branch ref pointing at the commit.
-  const branch = `${opts.branchPrefix ?? "admin-chat"}/${Date.now()}`;
-  await gh(`${repo}/git/refs`, {
-    method: "POST",
-    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: commit.sha }),
-  });
-
-  // 6. Open the PR against the default branch.
-  const pr = await gh<{ html_url: string; number: number }>(`${repo}/pulls`, {
-    method: "POST",
-    body: JSON.stringify({
-      title: opts.title,
-      head: branch,
-      base,
-      body:
-        (opts.body ? opts.body + "\n\n" : "") +
-        "_Opened by the Admin AI Control Portal. Review and merge to ship._",
-    }),
-  });
-
-  return { prUrl: pr.html_url, prNumber: pr.number, branch };
+  return { commitSha: commit.sha, commitUrl: commit.html_url, branch: base };
 }

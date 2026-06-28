@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAdminUser } from "@/lib/admin";
-import { readRepoFile, commitChangeViaPR, type ProposedFile } from "@/lib/github";
+import { readRepoFile, commitToMain, type ProposedFile } from "@/lib/github";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -12,7 +12,7 @@ const SYSTEM = `You are the Admin AI Control Portal for the "my-subscription-app
 
 How to make code changes:
 - ALWAYS use read_repo_file to inspect the current contents of any file before changing it. Never guess existing code.
-- Then use propose_code_change with the FULL new content of each file. This opens a pull request for review — it does NOT deploy to production. Tell the admin the PR link and that they must review and merge to ship.
+- Then use commit_code_change with the FULL new content of each file. This commits DIRECTLY to the main branch — there is no pull request and no review step. Be careful and precise. Report the commit link to the admin.
 - Keep changes minimal and focused on exactly what was asked; match the existing code style.
 
 Be concise and direct.`;
@@ -31,14 +31,13 @@ const tools: Anthropic.Tool[] = [
     },
   },
   {
-    name: "propose_code_change",
+    name: "commit_code_change",
     description:
-      "Commit one or more files to a NEW branch and open a pull request for the admin to review. Does NOT deploy to production. Provide the FULL new content of each file.",
+      "Commit one or more files DIRECTLY to the main (production) branch. There is no pull request and no review. Provide the FULL new content of each file.",
     input_schema: {
       type: "object",
       properties: {
-        message: { type: "string", description: "Short commit/PR title" },
-        body: { type: "string", description: "Optional longer description" },
+        message: { type: "string", description: "Commit message" },
         files: {
           type: "array",
           description: "Files to create or overwrite, each with full new content",
@@ -58,7 +57,7 @@ const tools: Anthropic.Tool[] = [
 ];
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
-type Action = { type: "pull_request"; prUrl: string; prNumber: number; branch: string };
+type Action = { type: "commit"; commitUrl: string; commitSha: string; branch: string };
 
 export async function POST(req: Request) {
   // Hard gate: only the admin email passes. Return 404 (not 403) so the
@@ -131,22 +130,20 @@ export async function POST(req: Request) {
             const { path } = block.input as { path: string };
             const content = await readRepoFile(path);
             results.push({ type: "tool_result", tool_use_id: block.id, content });
-          } else if (block.name === "propose_code_change") {
+          } else if (block.name === "commit_code_change") {
             const input = block.input as {
               message: string;
-              body?: string;
               files: ProposedFile[];
             };
-            const pr = await commitChangeViaPR({
-              title: input.message,
-              body: input.body,
+            const commit = await commitToMain({
+              message: input.message,
               files: input.files,
             });
-            actions.push({ type: "pull_request", ...pr });
+            actions.push({ type: "commit", ...commit });
             results.push({
               type: "tool_result",
               tool_use_id: block.id,
-              content: `Opened PR #${pr.prNumber} on branch '${pr.branch}': ${pr.prUrl}. It is NOT deployed — the admin must review and merge to ship.`,
+              content: `Committed ${commit.commitSha.slice(0, 7)} directly to '${commit.branch}': ${commit.commitUrl}. A production deploy is still required to make it live.`,
             });
           } else {
             results.push({
