@@ -33,10 +33,20 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Verify build-time public env is present (no values printed)
+        run: |
+          if grep -qE '^NEXT_PUBLIC_SUPABASE_URL=("")?$' .vercel/.env.production.local; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL is empty in pulled env"; exit 1
+          fi
+          echo "NEXT_PUBLIC_SUPABASE_URL is set"
+
       - name: Build (production)
+        # Force a clean build: NEXT_PUBLIC_* changes don't reliably invalidate
+        # Vercel's build cache, which can re-inline a stale (empty) value.
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_FORCE_NO_BUILD_CACHE: "1"
 
       - name: Deploy prebuilt output to production
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
