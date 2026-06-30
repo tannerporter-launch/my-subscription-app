@@ -39,6 +39,20 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     let customerId = existing?.stripe_customer_id as string | undefined;
+
+    // Verify the stored customer still exists in the CURRENT Stripe mode. A
+    // test-mode customer is invalid under a live key (and vice versa), and a
+    // deleted customer must not be reused — otherwise checkout throws
+    // "No such customer" and 500s.
+    if (customerId) {
+      try {
+        const c = await stripe.customers.retrieve(customerId);
+        if ((c as { deleted?: boolean }).deleted) customerId = undefined;
+      } catch {
+        customerId = undefined;
+      }
+    }
+
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email ?? undefined,
